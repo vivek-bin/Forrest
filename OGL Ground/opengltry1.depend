@@ -1,0 +1,201 @@
+# depslib dependency file v1.0
+1459336254 source:d:\profiles\vbindal\documents\opengltry1\main.c
+	<windows.h>
+	<gl/gl.h>
+	<gl/glu.h>
+	<gl/glut.h>
+	<gl/glext.h>
+
+1459422718 source:d:\profiles\vbindal\documents\opengltry1\main.cpp
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+
+1460370281 source:d:\profiles\vbindal\documents\opengltry1\chap2.1.c
+	<stdio.h>
+	<string.h>
+	<math.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+
+1461128091 source:d:\profiles\vbindal\documents\opengltry1\prac1.c
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+	<math.h>
+	"mat_funcs.h"
+
+1462527452 source:d:\profiles\vbindal\documents\opengltry1\mat_funcs.c
+	<math.h>
+	"mat_funcs.h"
+
+1461674382 d:\profiles\vbindal\documents\opengltry1\mat_funcs.c
+	<math.h>
+	"mat_funcs.h"
+
+1462513355 d:\profiles\vbindal\documents\opengltry1\mat_funcs.h
+
+1466072277 source:d:\profiles\vbindal\documents\opengltry1\gm.cpp
+	<iostream>
+	<fstream>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+	<math.h>
+	"stb_image.h"
+	"mat_funcs.h"
+	"cuboidClass.cpp"
+
+1462536650 source:d:\profiles\vbindal\documents\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1462536650 d:\profiles\vbindal\documents\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1461735340 d:\profiles\vbindal\documents\opengltry1\physics.cpp
+	<math.h>
+	"cuboidClass.cpp"
+
+1461756856 source:d:\profiles\vbindal\documents\opengltry1\physics.cpp
+
+1460370282 source:c:\users\nana ji\documents\opengltry1\chap2.1.c
+	<stdio.h>
+	<string.h>
+	<math.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+
+1462536652 source:c:\users\nana ji\documents\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1470508566 source:c:\users\nana ji\documents\opengltry1\gm.cpp
+	<iostream>
+	<fstream>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+	<math.h>
+	"stb_image.h"
+	"mat_funcs.h"
+	"cuboidClass.cpp"
+
+1462513356 c:\users\nana ji\documents\opengltry1\mat_funcs.h
+
+1462536652 c:\users\nana ji\documents\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1462527454 source:c:\users\nana ji\documents\opengltry1\mat_funcs.c
+	<math.h>
+	"mat_funcs.h"
+
+1461756856 source:c:\users\nana ji\documents\opengltry1\physics.cpp
+
+1461128092 source:c:\users\nana ji\documents\opengltry1\prac1.c
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+	<math.h>
+	"mat_funcs.h"
+
+1462085840 c:\users\nana ji\documents\opengltry1\stb_image.h
+	"stb_image.h"
+	<stdio.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<stdio.h>
+	<assert.h>
+	<stdint.h>
+	<emmintrin.h>
+	<intrin.h>
+	<arm_neon.h>
+
+1462090041 source:c:\users\nana ji\documents\opengltry1\stb_image.c
+	"stb_image.h"
+	<math.h>
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<memory.h>
+	<assert.h>
+	<stdarg.h>
+
+1462085840 d:\profiles\vbindal\documents\opengltry1\stb_image.h
+	"stb_image.h"
+	<stdio.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<stdio.h>
+	<assert.h>
+	<stdint.h>
+	<emmintrin.h>
+	<intrin.h>
+	<arm_neon.h>
+
+1462536652 source:c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1466072426 source:c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\gm.cpp
+	<iostream>
+	<fstream>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<GL/glew.h>
+	<GL/freeglut.h>
+	<math.h>
+	"stb_image.h"
+	"mat_funcs.h"
+	"cuboidClass.cpp"
+
+1462085840 c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\stb_image.h
+	"stb_image.h"
+	<stdio.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<stdio.h>
+	<assert.h>
+	<stdint.h>
+	<emmintrin.h>
+	<intrin.h>
+	<arm_neon.h>
+
+1462513356 c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\mat_funcs.h
+
+1462536652 c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\cuboidclass.cpp
+	<GL/glew.h>
+	<iostream>
+	<stdio.h>
+
+1462527454 source:c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\mat_funcs.c
+	<math.h>
+	"mat_funcs.h"
+
+1461756856 source:c:\users\nana ji\documents\opengl stuff 23.6.2016\opengltry1\physics.cpp
+
