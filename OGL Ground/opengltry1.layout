@@ -2,6 +2,16 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Debug" />
+	<File name="physics.cpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="cuboidClass.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="264" topLine="0" />
+		</Cursor>
+	</File>
 	<File name="mat_funcs.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="2691" topLine="73" />
@@ -10,32 +20,20 @@
 			<Collapse line="3" />
 		</Folding>
 	</File>
-	<File name="cuboidClass.cpp" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="264" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="mat_funcs.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="632" topLine="0" />
-		</Cursor>
-	</File>
 	<File name="gm.cpp" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="5787" topLine="131" />
+			<Cursor1 position="2716" topLine="51" />
 		</Cursor>
 		<Folding>
 			<Collapse line="41" />
 			<Collapse line="54" />
 			<Collapse line="64" />
 			<Collapse line="77" />
-			<Collapse line="170" />
-			<Collapse line="211" />
 		</Folding>
 	</File>
-	<File name="physics.cpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="mat_funcs.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="2" topLine="0" />
+			<Cursor1 position="632" topLine="0" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>

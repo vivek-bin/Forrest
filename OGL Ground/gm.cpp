@@ -105,7 +105,8 @@ const GLchar* HeightVertShader = { SHADERCODE(
 
      fg_Normal=normalize(vec3(V*M*vec4(vc_Normal,0.0f)));
      fg_Position=V*M*vec4(r,
-                          sin(r*10)*tan(c*10)*2,//vc_Height*4,
+                          //sin(r*10)*tan(c*10)*2,
+                          vc_Height,
                           c,1.0f);
      texture_coordinates=vec2(r*5,c*5);
      gl_Position=P*fg_Position;
@@ -138,7 +139,9 @@ const GLchar* HeightFragShader = { SHADERCODE(
      vec3 direction_to_light = normalize ((light_position.xyz - fg_Position.xyz));
      vec3 Id = Ld * Kd * max(dot(direction_to_light, fg_Normal),0.0); // final diffuse intensity
 
-     frag_colour = vec4 (Id + Ia, 1.0)*vec4(0.9f,0.9f,0.9f,1.0f);//texture(basic_texture,texture_coordinates);
+     frag_colour = vec4 (Id + Ia, 1.0)*
+                   //vec4(0.9f,0.9f,0.9f,1.0f);
+                   texture(basic_texture,texture_coordinates);
      if(frag_colour == transparent_colour)
         discard;
  }
@@ -760,6 +763,7 @@ GLuint loadTexture(const char * path,const GLuint Params,const GLuint Paramt){
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, Paramt);
     glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    STBI_FREE(image);
     return tex;
 }
 
