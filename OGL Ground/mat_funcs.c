@@ -84,7 +84,7 @@ void initMat(float mat[]){
     mat[12]=0; mat[13]=0; mat[14]=0; mat[15]=1;
 }
 
-void multiplyMatMV(float mat[],float v[],int n){
+void multiplyMatMV(float const mat[],float v[],int n){
     float temp[4];
     short i,j;
     for(i=0;i<n;++i)
@@ -100,25 +100,25 @@ void multiplyMatMV(float mat[],float v[],int n){
 void normalizeVector(float v[]){
     float mag;
     mag = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
-    if(mag<0.0001)return;
+    if(mag<0.000001)return;
     mag = (float)sqrt(mag);
     v[0]/=mag; v[1]/=mag; v[2]/=mag;
 }
 
-void crossProduct(float v1[],float v2[],float result[]){
+void crossProduct(float const v1[],float const v2[],float result[]){
     result[0]=v1[1]*v2[2]-v1[2]*v2[1];
     result[1]=v1[2]*v2[0]-v1[0]*v2[2];
     result[2]=v1[0]*v2[1]-v1[1]*v2[0];
 }
 
-void distance3D(float v1[],float v2[],float dist[]){
+void distance3D(float const v1[],float const v2[],float dist[]){
     dist[0]=v2[0]-v1[0];
     dist[1]=v2[1]-v1[1];
     dist[2]=v2[2]-v1[2];
-    dist[3]=v2[3]-v1[3];
+    dist[3]=0;
 }
 
-void copyMat(float Src[],float Dest[],int Size){
+void copyMat(float const Src[],float Dest[],int Size){
     for(Size=Size*Size-1;Size>=0;--Size)
         Dest[Size]=Src[Size];
 }

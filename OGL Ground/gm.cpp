@@ -1,5 +1,6 @@
 #define WINDOW_TITLE_PREFIX "Practice"
 #define SHADERCODE(x) "#version 400\n" #x
+#define SHADERCODEPRE(x) SHADERCODE(x)
 #define RIGHT_KEY 0
 #define LEFT_KEY 1
 #define UP_KEY 2
@@ -7,6 +8,8 @@
 #define SPACE_KEY 4
 #define TERRAIN_NUM_DIV_PTS 64
 #define GROUND_SIZE 15.0f
+#define NUMBER_OF_TREES 100
+#define NUMBER_OF_ROCKS 40
 
 #include <iostream>
 #include <fstream>
@@ -17,6 +20,7 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <math.h>
+#include <time.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -25,7 +29,7 @@
 #include "cuboidClass.cpp"
 GLuint shader_Prog::CurrentProg;
 
-int CurrentWidth = 800/3, CurrentHeight = 600/3, WindowHandle = 0;
+int CurrentWidth = 800, CurrentHeight = 600, WindowHandle = 0;
 unsigned FrameCount = 0;
 GLfloat ViewMat[16],ProjMat[16],Camera[4],Centre[4],Up[4];
 GLubyte ArrowKeys[5];
@@ -34,12 +38,12 @@ GLuint TreeTex,GrassTex,RockTex,FenceTex;
 shader_Prog SimpleShader,TextureShader,TerrainShader;
 
 base_Cuboid_Shape Tent,Tree,Rock,Ground,Fence;
-shape_Object TreeObj[200],RockObj[5],TentObj[5],FenceObj[5],GroundObj;
+shape_Object TreeObj[NUMBER_OF_TREES],RockObj[NUMBER_OF_ROCKS],TentObj[5],FenceObj[5],GroundObj;
 
 GLfloat HeightMap[TERRAIN_NUM_DIV_PTS*TERRAIN_NUM_DIV_PTS];
 
 
-const GLchar* SimpleVertShader = { SHADERCODE(
+const GLchar* SimpleVertShader = { SHADERCODEPRE(
  layout(location=0) in vec4 in_Position;
  layout(location=1) in vec4 in_Color;
  uniform mat4 VM;
@@ -52,7 +56,7 @@ const GLchar* SimpleVertShader = { SHADERCODE(
  }
 )};
 
-const GLchar* SimpleFragShader = { SHADERCODE(
+const GLchar* SimpleFragShader = { SHADERCODEPRE(
  in vec4 ex_Color;
  out vec4 out_Color;
 
@@ -62,58 +66,26 @@ const GLchar* SimpleFragShader = { SHADERCODE(
  }
 )};
 
-const GLchar* TexVertShader = { SHADERCODE(
+const GLchar* TexVertShader = { SHADERCODEPRE(
  layout(location=0) in vec4 in_Position;
  layout(location=1) in vec2 vt;
- uniform mat4 VM;
- uniform mat4 P;
- out vec2 texture_coordinates;
- void main()
- {
-     texture_coordinates=vt;
-     gl_Position=P*VM*in_Position;
- }
-)};
-
-const GLchar* TexFragShader = { SHADERCODE(
- in vec2 texture_coordinates;
- out vec4 frag_colour;
- uniform sampler2D basic_texture;
- uniform vec4 transparent_colour=vec4(1.0f,1.0f,1.0f,1.0f);
-
- void main () {
-     frag_colour = texture(basic_texture,texture_coordinates);
-     if(frag_colour == transparent_colour)
-        discard;
- }
-)};
-
-const GLchar* HeightVertShader = { SHADERCODE(
- layout(location=0) in float vc_Height;
  layout(location=2) in vec3 vc_Normal;
- uniform mat4 P;
  uniform mat4 V;
  uniform mat4 M;
- uniform int NumPts;
+ uniform mat4 P;
  out vec2 texture_coordinates;
  out vec3 fg_Normal;
  out vec4 fg_Position;
  void main()
  {
-     float r=2.0f*(gl_VertexID%NumPts)/(NumPts-1.0f) - 1.0f;
-     float c=2.0f*(gl_VertexID/NumPts)/(NumPts-1.0f) - 1.0f;
-
-     fg_Normal=normalize(vec3(V*M*vec4(vc_Normal,0.0f)));
-     fg_Position=V*M*vec4(r,
-                          //sin(r*10)*tan(c*10)*2,
-                          vc_Height,
-                          c,1.0f);
-     texture_coordinates=vec2(r*5,c*5);
-     gl_Position=P*fg_Position;
+     fg_Normal=normalize(vec3(M*vec4(vc_Normal,0.0f)));
+     texture_coordinates=vt;
+     fg_Position=M*in_Position;
+     gl_Position=P*V*fg_Position;
  }
 )};
 
-const GLchar* HeightFragShader = { SHADERCODE(
+const GLchar* TexFragShader = { SHADERCODEPRE(
  in vec2 texture_coordinates;
  out vec4 frag_colour;
  uniform mat4 V;
@@ -123,7 +95,67 @@ const GLchar* HeightFragShader = { SHADERCODE(
  in vec4 fg_Position;
 
  void main () {
-     vec3 light_position_world = vec3 (20.0, 9.0, 20.0);
+     frag_colour = texture(basic_texture,texture_coordinates);
+     if(frag_colour == transparent_colour)
+        discard;
+
+     vec3 light_position_world = vec3 (20.0, 10.0, 20.0);
+     vec3 Ls = vec3 (1.0, 1.0, 1.0); // white specular colour
+     vec3 Ld = vec3 (0.7, 0.7, 0.7); // dull white diffuse light colour
+     vec3 La = vec3 (0.3, 0.3, 0.3); // grey ambient colour
+     // surface reflectance
+     vec3 Ks = vec3 (1.0, 1.0, 1.0); // fully reflect specular light
+     vec3 Kd = vec3 (1.0, 1.0, 1.0); // orange diffuse surface reflectance
+     vec3 Ka = vec3 (0.0, 0.0, 0.0); // fully reflect ambient light
+     float specular_exponent = 100.0; // specular 'power'
+     // ambient intensity
+     vec3 Ia = La * Ka;
+     // diffuse intensity
+     vec3 direction_to_light = normalize ((light_position_world.xyz - fg_Position.xyz));
+     vec3 Id = Ld * Kd * max(dot(direction_to_light, fg_Normal),0.0); // final diffuse intensity
+     //frag_colour *= vec4 (Id + Ia, 1.0);
+ }
+)};
+
+const GLchar* HeightVertShader = { SHADERCODEPRE(
+ layout(location=0) in float vc_Height;
+ layout(location=2) in vec3 vc_Normal;
+ uniform mat4 P;
+ uniform mat4 V;
+ uniform mat4 M;
+ out vec2 texture_coordinates;
+ out vec3 fg_Normal;
+ out vec4 fg_Position;
+ void main()
+ {
+     float r=2.0f*(gl_VertexID%TERRAIN_NUM_DIV_PTS)/(TERRAIN_NUM_DIV_PTS-1.0f) - 1.0f;
+     float c=2.0f*(gl_VertexID/TERRAIN_NUM_DIV_PTS)/(TERRAIN_NUM_DIV_PTS-1.0f) - 1.0f;
+
+     fg_Normal=normalize(vec3(M*vec4(vc_Normal,0.0f)));
+     fg_Position=M*vec4(r,
+                          //sin(r*10)*tan(c*10)*2,
+                          vc_Height,
+                          c,1.0f);
+     texture_coordinates=vec2(r*5,c*5);
+     gl_Position=P*V*fg_Position;
+ }
+)};
+
+const GLchar* HeightFragShader = { SHADERCODEPRE(
+ in vec2 texture_coordinates;
+ out vec4 frag_colour;
+ uniform mat4 V;
+ uniform sampler2D basic_texture;
+ uniform vec4 transparent_colour=vec4(1.0f,1.0f,1.0f,1.0f);
+ in vec3 fg_Normal;
+ in vec4 fg_Position;
+
+ void main () {
+     frag_colour = texture(basic_texture,texture_coordinates);
+     if(frag_colour == transparent_colour)
+        discard;
+
+     vec3 light_position_world = vec3 (20.0, 10.0, 20.0);
      vec3 Ls = vec3 (1.0, 1.0, 1.0); // white specular colour
      vec3 Ld = vec3 (0.7, 0.7, 0.7); // dull white diffuse light colour
      vec3 La = vec3 (0.3, 0.3, 0.2); // grey ambient colour
@@ -135,15 +167,9 @@ const GLchar* HeightFragShader = { SHADERCODE(
      // ambient intensity
      vec3 Ia = La * Ka;
      // diffuse intensity
-     vec3 light_position = vec3 (V * vec4 (light_position_world, 1.0));
-     vec3 direction_to_light = normalize ((light_position.xyz - fg_Position.xyz));
+     vec3 direction_to_light = normalize ((light_position_world.xyz - fg_Position.xyz));
      vec3 Id = Ld * Kd * max(dot(direction_to_light, fg_Normal),0.0); // final diffuse intensity
-
-     frag_colour = vec4 (Id + Ia, 1.0)*
-                   //vec4(0.9f,0.9f,0.9f,1.0f);
-                   texture(basic_texture,texture_coordinates);
-     if(frag_colour == transparent_colour)
-        discard;
+     frag_colour *= vec4 (Id + Ia, 1.0);
  }
 )};
 
@@ -167,11 +193,13 @@ void createFence();
 GLuint loadTexture(const char *,const GLuint,const GLuint);
 float pointHeight(float ,float );
 void loadHeightMap();
-void genNormals(float []);
+void genHeightMapNormals(float []);
 void createHeightMap();
-
+void genNormals(GLfloat const [],int ,GLushort const [],int ,GLfloat []);
 
 int main(int argc,char* argv[]){
+
+    srand(time(NULL));
 
     initialize(argc,argv);
 
@@ -202,6 +230,7 @@ void initialize(int argc,char* argv[]){
     createRock();
     createFence();
     glEnable(GL_TEXTURE_2D);
+
     //SimpleShader.createShaders(SimpleVertShader,SimpleFragShader);
     TextureShader.createShaders(TexVertShader,TexFragShader);
     TerrainShader.createShaders(HeightVertShader,HeightFragShader);
@@ -230,7 +259,7 @@ void createGround(){
 
     GroundObj.Shape=&Ground;
     scaleMat(GroundObj.ModelMat,GROUND_SIZE,1.0f,GROUND_SIZE);
-    genNormals(Normals);
+    genHeightMapNormals(Normals);
     Ground.createVao();
     Ground.createHeightBuffer(HeightMap,sizeof(HeightMap));
     Ground.createNormalBuffer(Normals,sizeof(Normals));
@@ -258,9 +287,14 @@ void createFence(){
     };
     TexCoord[4]*=GROUND_SIZE;TexCoord[6]=TexCoord[4];
 
+    GLfloat Normals[((sizeof(Vertices)/sizeof(GLfloat))*3)/4];
+
+    genNormals(Vertices,sizeof(Vertices),Indices,sizeof(Indices),Normals);
+
     Fence.createVao();
     Fence.createVertexBuffer(Vertices, sizeof(Vertices));
     Fence.createTexCoordBuffer(TexCoord,sizeof(TexCoord));
+    Fence.createNormalBuffer(Normals,sizeof(Normals));
     Fence.createIndexBuffer(Indices, sizeof(Indices));
     glBindVertexArray(0);
 
@@ -344,6 +378,7 @@ void createTree(){
 
     21,22,23,
     22,23,24,
+
     25,26,27,
     26,27,28
     };
@@ -386,16 +421,25 @@ void createTree(){
     0.5f,0.125f
     };
 
+    GLfloat Normals[((sizeof(Vertices)/sizeof(GLfloat))*3)/4];
+
+    genNormals(Vertices,sizeof(Vertices),Indices,sizeof(Indices),Normals);
+
     Tree.createVao();
     Tree.createVertexBuffer(Vertices,sizeof(Vertices));
     Tree.createTexCoordBuffer(TexCoord,sizeof(TexCoord));
+    Tree.createNormalBuffer(Normals,sizeof(Normals));
     Tree.createIndexBuffer(Indices,sizeof(Indices));
     glBindVertexArray(0);
 
-    for(int i=0;i<200;i++){
-    TreeObj[i].Shape=&Tree;
-    scaleMat(TreeObj[i].ModelMat,0.075f,1.0f,0.075f);
-    translateMat(TreeObj[i].ModelMat,0.1f*i - 10.0f,1.0f+pointHeight(0.1f*i - 10.0f,i%24 - 10.0f),i%24 - 10.0f);
+    for(int i=0;i<NUMBER_OF_TREES;++i){
+        float x,z,scale;
+        TreeObj[i].Shape=&Tree;
+        scale=(rand()&0x1f)-0x0f;
+        scaleMat(TreeObj[i].ModelMat,0.075f+scale*0.001,1.0f+scale*0.01,0.075f+scale*0.001);
+        x=((rand()&0xff)-0x7f)/10.0f;
+        z=((rand()&0xff)-0x7f)/10.0f;
+        translateMat(TreeObj[i].ModelMat,x,0.85f+scale*0.01+pointHeight(x,z),z);
     }
 }
 
@@ -415,6 +459,7 @@ void createRock(){
          0.0f, 1.0f,-0.5f,1.0f,
         -0.6f, 0.9f,-0.4f,1.0f
     };
+
     GLushort Indices[]={
         11,7,0,
         0,6,11,
@@ -432,6 +477,7 @@ void createRock(){
         11,9,8,
         11,10,9
     };
+
     GLfloat TexCoord[]={
         0.0f,0.0f,
         0.0f,1.0f,
@@ -447,21 +493,29 @@ void createRock(){
         0.0f,0.0f,
         0.0f,1.0f,
     };
+
+    GLfloat Normals[((sizeof(Vertices)/sizeof(GLfloat))*3)/4];
+
+    genNormals(Vertices,sizeof(Vertices),Indices,sizeof(Indices),Normals);
+
     Rock.createVao();
     Rock.createVertexBuffer(Vertices, sizeof(Vertices));
     Rock.createTexCoordBuffer(TexCoord,sizeof(TexCoord));
+    Rock.createNormalBuffer(Normals,sizeof(Normals));
     Rock.createIndexBuffer(Indices, sizeof(Indices));
     glBindVertexArray(0);
 
-
-    RockObj[0].Shape=&Rock;
-    scaleMat(RockObj[0].ModelMat,0.3f,0.1f,0.3f);
-    translateMat(RockObj[0].ModelMat,1.3f,0.1f,1.0f);
-
-    RockObj[1].Shape=&Rock;
-    scaleMat(RockObj[1].ModelMat,0.3f,0.1f,0.3f);
-    translateMat(RockObj[1].ModelMat,1.3f,0.1f,1.1f);
-
+    for(int i=0;i<NUMBER_OF_ROCKS;++i){
+        float x,z,scale,xzscale,yscale;
+        RockObj[i].Shape=&Rock;
+        scale=(rand()&0x1f)-0x0f;
+        xzscale=0.6f+scale*0.04f;
+        yscale=0.3f+scale*0.015f;
+        scaleMat(RockObj[i].ModelMat,xzscale,yscale,xzscale);
+        x=((rand()&0xff)-0x7f)/10.0f;
+        z=((rand()&0xff)-0x7f)/10.0f;
+        translateMat(RockObj[i].ModelMat,x,yscale+pointHeight(x,z)-0.1f,z);
+    }
 }
 
 void createTent(){
@@ -487,9 +541,14 @@ void createTent(){
         0.0f,0.0f,
         1.0f,0.0f
     };
+
+    GLfloat Normals[((sizeof(Vertices)/sizeof(GLfloat))*3)/4];
+    genNormals(Vertices,sizeof(Vertices),Indices,sizeof(Indices),Normals);
+
     Tent.createVao();
     Tent.createVertexBuffer(Vertices, sizeof(Vertices));
     Tent.createTexCoordBuffer(TexCoord,sizeof(TexCoord));
+    Tent.createNormalBuffer(Normals,sizeof(Normals));
     Tent.createIndexBuffer(Indices, sizeof(Indices));
     glBindVertexArray(0);
     TentObj[0].Shape=&Tent;
@@ -598,62 +657,56 @@ void arrowKeyDown(int key,int x,int y){
 }
 
 void idleFunction(){
-    glutPostRedisplay();
+    //glutPostRedisplay();
 }
 
 void renderFunction(){
-    float Temp[16];
-    int i;
-    GLint VMLocation;
-    i=0;
+    GLint MLocation;
+
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
     if(GroundObj.Shape!=NULL){
         TerrainShader.useProgram("P",ProjMat);
         glBindTexture (GL_TEXTURE_2D, GrassTex);
-        glUniform1i(glGetUniformLocation(shader_Prog::getCurrentProg(),"NumPts"),TERRAIN_NUM_DIV_PTS);
         glUniformMatrix4fv(glGetUniformLocation(shader_Prog::getCurrentProg(),"V"),1,GL_FALSE,ViewMat);
         glUniformMatrix4fv(glGetUniformLocation(shader_Prog::getCurrentProg(),"M"),1,GL_FALSE,GroundObj.ModelMat);
         GroundObj.Shape->drawElements(GL_TRIANGLE_STRIP);
     }
 
     TextureShader.useProgram("P",ProjMat);
-    VMLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"VM");
+
+    glUniformMatrix4fv(glGetUniformLocation(shader_Prog::getCurrentProg(),"V"),1,GL_FALSE,ViewMat);
+    MLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"M");
     glBindTexture (GL_TEXTURE_2D, FenceTex);
-    for(i=0;i<-5;i++){
-        if(FenceObj[i].Shape!=NULL)
-        {
-            multiplyMatMM(ViewMat,FenceObj[i].ModelMat,4,Temp);
-            glUniformMatrix4fv(VMLocation,1,GL_FALSE,Temp);
+    for(int i=0;i<5;i++){
+        if(FenceObj[i].Shape!=NULL){
+            glUniformMatrix4fv(MLocation,1,GL_FALSE,FenceObj[i].ModelMat);
             FenceObj[i].Shape->drawElements(GL_TRIANGLES);
         }
     }
-    i=0;
     glBindTexture(GL_TEXTURE_2D,RockTex);
-    VMLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"VM");
-        if(RockObj[i].Shape!=NULL)
-        {
-            multiplyMatMM(ViewMat,RockObj[i].ModelMat,4,Temp);
-            glUniformMatrix4fv(VMLocation,1,GL_FALSE,Temp);
+    //MLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"M");
+    for(int i=0;i<NUMBER_OF_ROCKS;++i){
+        if(RockObj[i].Shape!=NULL){
+            glUniformMatrix4fv(MLocation,1,GL_FALSE,RockObj[i].ModelMat);
             RockObj[i].Shape->drawElements(GL_TRIANGLES);
         }
+    }
 
-    TextureShader.useProgram("P",ProjMat);
-    VMLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"VM");
+    //TextureShader.useProgram("P",ProjMat);
+    //MLocation=glGetUniformLocation(shader_Prog::getCurrentProg(),"M");
     glBindTexture (GL_TEXTURE_2D, TreeTex);
-    for(i=0;i<-200;i++){
-        if(TreeObj[i].Shape!=NULL)
-        {
-            for(int b=0;b<10;b++)
-            {
-                multiplyMatMM(ViewMat,TreeObj[i].ModelMat,4,Temp);
-                glUniformMatrix4fv(VMLocation,1,GL_FALSE,Temp);
+    for(int i=0;i<NUMBER_OF_TREES;i++){
+        if(TreeObj[i].Shape!=NULL){
+            for(int b=0;b<15;b++){
+                glUniformMatrix4fv(MLocation,1,GL_FALSE,TreeObj[i].ModelMat);
                 TreeObj[i].Shape->drawElements(GL_TRIANGLES);
                 //rotate piece about centre of tree
-                Temp[0]=TreeObj[i].ModelMat[12];Temp[1]=TreeObj[i].ModelMat[14];
-                translateMat(TreeObj[i].ModelMat,-Temp[0],0,-Temp[1]);
-                rotateYMatrix(360/10,TreeObj[i].ModelMat);
-                translateMat(TreeObj[i].ModelMat,Temp[0],0,Temp[1]);
+                float TempX=TreeObj[i].ModelMat[12];
+                float TempZ=TreeObj[i].ModelMat[14];
+                translateMat(TreeObj[i].ModelMat,-TempX,0,-TempZ);
+                rotateYMatrix(360/15,TreeObj[i].ModelMat);
+                translateMat(TreeObj[i].ModelMat,TempX,0,TempZ);
             }
         }
     }
@@ -690,6 +743,7 @@ void timerFunction(int n){
     keyCheck();
     glutTimerFunc(50,timerFunction,1);
     FrameCount=0;
+    glutPostRedisplay();
 }
 
 void initializeData(){
@@ -791,11 +845,10 @@ float pointHeight(float x,float y){
     return h;
 }
 
-void genNormals(float NormalMat[]){
+void genHeightMapNormals(float NormalMat[]){
     int i,j;
     float Dir[8][4];
     float temp[4],N[4];
-    //std::ofstream ofile("D:/Profiles/vbindal/Documents/opengltry1/data/heightnorms2.txt");
 
     for(i=0;i<TERRAIN_NUM_DIV_PTS;i++){
         for(j=0;j<TERRAIN_NUM_DIV_PTS;j++){
@@ -888,4 +941,30 @@ void createHeightMap(){
     }
 }
 
+void genNormals(GLfloat const Vertices[],int VerticesSize,GLushort const Indices[],int IndicesSize,GLfloat Normals[]){
+    int NumIndices=IndicesSize/sizeof(GLushort);
+    int NumNormals=(VerticesSize/sizeof(GLfloat))/4;        //4components per vertex
 
+    GLfloat *TriangleNormals=new GLfloat[(NumIndices*3)/3];  //3vertices per triangle, 3 components per normal
+
+    for(int i=0;i<NumIndices;i+=3){
+        GLfloat TempVec1[4],TempVec2[4];
+        distance3D(&Vertices[Indices[i+0]*4],&Vertices[Indices[i+1]*4],TempVec1);
+        distance3D(&Vertices[Indices[i+1]*4],&Vertices[Indices[i+2]*4],TempVec2);
+        crossProduct(TempVec1,TempVec2,TriangleNormals+i);
+        normalizeVector(TriangleNormals+i);
+    }
+    for(int i=0;i<NumNormals*3;++i){
+        Normals[i]=0;
+    }
+    for(int i=0;i<NumIndices;++i){
+        Normals[Indices[i]*3+0]+=TriangleNormals[i/3+0];
+        Normals[Indices[i]*3+1]+=TriangleNormals[i/3+1];
+        Normals[Indices[i]*3+2]+=TriangleNormals[i/3+2];
+    }
+    for(int i=0;i<NumNormals;++i){
+        normalizeVector(&Normals[i*3]);
+    }
+
+    delete[] TriangleNormals;
+}
