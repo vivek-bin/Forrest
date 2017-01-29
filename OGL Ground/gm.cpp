@@ -10,6 +10,7 @@
 #define GROUND_SIZE 15.0f
 #define NUMBER_OF_TREES 100
 #define NUMBER_OF_ROCKS 40
+#define LIGHT_POSITION 100.0, 100.0, 0.0
 
 #include <iostream>
 #include <fstream>
@@ -29,7 +30,7 @@
 #include "cuboidClass.cpp"
 GLuint shader_Prog::CurrentProg;
 
-int CurrentWidth = 800, CurrentHeight = 600, WindowHandle = 0;
+int CurrentWidth = 1000, CurrentHeight = 700, WindowHandle = 0;
 unsigned FrameCount = 0;
 GLfloat ViewMat[16],ProjMat[16],Camera[4],Centre[4],Up[4];
 GLubyte ArrowKeys[5];
@@ -99,21 +100,21 @@ const GLchar* TexFragShader = { SHADERCODEPRE(
      if(frag_colour == transparent_colour)
         discard;
 
-     vec3 light_position_world = vec3 (20.0, 10.0, 20.0);
+     vec3 light_position_world = vec3 (LIGHT_POSITION);
      vec3 Ls = vec3 (1.0, 1.0, 1.0); // white specular colour
      vec3 Ld = vec3 (0.7, 0.7, 0.7); // dull white diffuse light colour
-     vec3 La = vec3 (0.3, 0.3, 0.3); // grey ambient colour
+     vec3 La = vec3 (0.3, 0.3, 0.2); // grey ambient colour
      // surface reflectance
      vec3 Ks = vec3 (1.0, 1.0, 1.0); // fully reflect specular light
-     vec3 Kd = vec3 (1.0, 1.0, 1.0); // orange diffuse surface reflectance
-     vec3 Ka = vec3 (0.0, 0.0, 0.0); // fully reflect ambient light
+     vec3 Kd = vec3 (1.0, 0.5, 0.0); // orange diffuse surface reflectance
+     vec3 Ka = vec3 (1.0, 1.0, 1.0); // fully reflect ambient light
      float specular_exponent = 100.0; // specular 'power'
      // ambient intensity
      vec3 Ia = La * Ka;
      // diffuse intensity
      vec3 direction_to_light = normalize ((light_position_world.xyz - fg_Position.xyz));
      vec3 Id = Ld * Kd * max(dot(direction_to_light, fg_Normal),0.0); // final diffuse intensity
-     //frag_colour *= vec4 (Id + Ia, 1.0);
+     frag_colour *= vec4 (Id + Ia, 1.0);
  }
 )};
 
@@ -155,7 +156,7 @@ const GLchar* HeightFragShader = { SHADERCODEPRE(
      if(frag_colour == transparent_colour)
         discard;
 
-     vec3 light_position_world = vec3 (20.0, 10.0, 20.0);
+     vec3 light_position_world = vec3 (LIGHT_POSITION);
      vec3 Ls = vec3 (1.0, 1.0, 1.0); // white specular colour
      vec3 Ld = vec3 (0.7, 0.7, 0.7); // dull white diffuse light colour
      vec3 La = vec3 (0.3, 0.3, 0.2); // grey ambient colour
@@ -196,6 +197,8 @@ void loadHeightMap();
 void genHeightMapNormals(float []);
 void createHeightMap();
 void genNormals(GLfloat const [],int ,GLushort const [],int ,GLfloat []);
+float areaHeight(float,float,float);
+void removeOverlaping();
 
 int main(int argc,char* argv[]){
 
@@ -229,6 +232,7 @@ void initialize(int argc,char* argv[]){
     createTent();
     createRock();
     createFence();
+    removeOverlaping();
     glEnable(GL_TEXTURE_2D);
 
     //SimpleShader.createShaders(SimpleVertShader,SimpleFragShader);
@@ -439,7 +443,7 @@ void createTree(){
         scaleMat(TreeObj[i].ModelMat,0.075f+scale*0.001,1.0f+scale*0.01,0.075f+scale*0.001);
         x=((rand()&0xff)-0x7f)/10.0f;
         z=((rand()&0xff)-0x7f)/10.0f;
-        translateMat(TreeObj[i].ModelMat,x,0.85f+scale*0.01+pointHeight(x,z),z);
+        translateMat(TreeObj[i].ModelMat,x,0.8f+scale*0.01+pointHeight(x,z),z);
     }
 }
 
@@ -514,7 +518,7 @@ void createRock(){
         scaleMat(RockObj[i].ModelMat,xzscale,yscale,xzscale);
         x=((rand()&0xff)-0x7f)/10.0f;
         z=((rand()&0xff)-0x7f)/10.0f;
-        translateMat(RockObj[i].ModelMat,x,yscale+pointHeight(x,z)-0.1f,z);
+        translateMat(RockObj[i].ModelMat,x,yscale+areaHeight(x,z,xzscale)-0.1f,z);
     }
 }
 
@@ -716,6 +720,25 @@ void renderFunction(){
     ++FrameCount;
 }
 
+void removeOverlaping(){
+    for(int i=0;i<NUMBER_OF_TREES;++i){
+        for(int j=0;j<NUMBER_OF_ROCKS;++j){
+            float *TMat=TreeObj[i].ModelMat;
+            float *RMat=RockObj[j].ModelMat;
+            float distsq,rt,rr;
+            distsq=((RMat[12]-TMat[12])*(RMat[12]-TMat[12]))+((RMat[14]-TMat[14])*(RMat[14]-TMat[14]));
+            rt=(TMat[0]+TMat[10])/2;
+            rr=(RMat[0]+RMat[10])/2;
+
+            if(distsq<rt*rt+rr*rr){
+                initMat(TMat);
+                TMat[0]=TMat[5]=TMat[10]=TMat[15]=0.0f;
+                break;
+            }
+        }
+    }
+}
+
 void resizeFunction(int Width, int Height){
     CurrentWidth=Width;
     CurrentHeight=Height;
@@ -845,6 +868,42 @@ float pointHeight(float x,float y){
     return h;
 }
 
+float areaHeight(float x,float y,float radius){
+    int i,j,r,num;
+    float minimum,average;
+    minimum=9999.9f;
+    average=0.0f;
+    num=0;
+    r=(radius*TERRAIN_NUM_DIV_PTS/(2*GROUND_SIZE));
+    x+=GROUND_SIZE;
+    x*=TERRAIN_NUM_DIV_PTS/(2*GROUND_SIZE);
+    y+=GROUND_SIZE;
+    y*=TERRAIN_NUM_DIV_PTS/(2*GROUND_SIZE);
+    i=(int)x;
+    j=(int)y;
+
+    for(int a=r;a>0;--a){
+        float h;
+        h=HeightMap[(j+r-a)*TERRAIN_NUM_DIV_PTS+i+a];
+        if(h<minimum)minimum=h;
+        ++num;average+=h;
+
+        h=HeightMap[(j+a)*TERRAIN_NUM_DIV_PTS+i+a-r];
+        if(h<minimum)minimum=h;
+        ++num;average+=h;
+
+        h=HeightMap[(j+a-r)*TERRAIN_NUM_DIV_PTS+i-a];
+        if(h<minimum)minimum=h;
+        ++num;average+=h;
+
+        h=HeightMap[(j-a)*TERRAIN_NUM_DIV_PTS+i+r-a];
+        if(h<minimum)minimum=h;
+        ++num;average+=h;
+    }
+    average/=num;
+    return minimum*0.8f+average*0.2f;
+}
+
 void genHeightMapNormals(float NormalMat[]){
     int i,j;
     float Dir[8][4];
@@ -950,7 +1009,7 @@ void genNormals(GLfloat const Vertices[],int VerticesSize,GLushort const Indices
     for(int i=0;i<NumIndices;i+=3){
         GLfloat TempVec1[4],TempVec2[4];
         distance3D(&Vertices[Indices[i+0]*4],&Vertices[Indices[i+1]*4],TempVec1);
-        distance3D(&Vertices[Indices[i+1]*4],&Vertices[Indices[i+2]*4],TempVec2);
+        distance3D(&Vertices[Indices[i+0]*4],&Vertices[Indices[i+2]*4],TempVec2);
         crossProduct(TempVec1,TempVec2,TriangleNormals+i);
         normalizeVector(TriangleNormals+i);
     }
@@ -958,9 +1017,9 @@ void genNormals(GLfloat const Vertices[],int VerticesSize,GLushort const Indices
         Normals[i]=0;
     }
     for(int i=0;i<NumIndices;++i){
-        Normals[Indices[i]*3+0]+=TriangleNormals[i/3+0];
-        Normals[Indices[i]*3+1]+=TriangleNormals[i/3+1];
-        Normals[Indices[i]*3+2]+=TriangleNormals[i/3+2];
+        Normals[Indices[i]*3+0]+=TriangleNormals[(i/3)*3+0];
+        Normals[Indices[i]*3+1]+=TriangleNormals[(i/3)*3+1];
+        Normals[Indices[i]*3+2]+=TriangleNormals[(i/3)*3+2];
     }
     for(int i=0;i<NumNormals;++i){
         normalizeVector(&Normals[i*3]);
